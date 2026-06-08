@@ -1,0 +1,103 @@
+---
+import '../styles/global.css';
+
+const effectiveDate = 'June 8, 2026';
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" href="/favicon.ico" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta
+			name="description"
+			content="Terms of service for PaperBright Text Editor, a browser-based writing app with optional Google Drive live save."
+		/>
+		<title>Terms of Service | PaperBright Text Editor</title>
+	</head>
+	<body>
+		<main class="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
+			<header class="theme-panel flex items-center justify-between gap-3 rounded-lg border border-line bg-white/90 px-4 py-3 shadow-sm">
+				<a class="flex min-w-0 items-center gap-3 text-inherit no-underline" href="/">
+					<div class="paperbright-logo flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-ink text-paper" aria-hidden="true">
+						<svg width="25" height="25" viewBox="0 0 25 25" fill="none" role="img">
+							<path d="M7 3.5h8.2L20 8.3V21H7V3.5Z" fill="white" />
+							<path d="M15.2 3.5V8.3H20" fill="#dbeafe" />
+							<path d="M10 12.2h7" stroke="#0a0a0a" stroke-width="1.8" stroke-linecap="round" />
+							<path d="M10 15.8h5.2" stroke="#0a0a0a" stroke-width="1.8" stroke-linecap="round" />
+							<path d="M7 3.5h8.2L20 8.3V21H7V3.5Z" stroke="white" stroke-width="1.7" stroke-linejoin="round" />
+							<path d="M6.2 18.8c3.2-1.2 6.8-1.2 10 0" stroke="#60a5fa" stroke-width="1.9" stroke-linecap="round" />
+						</svg>
+					</div>
+					<div>
+						<p class="theme-muted text-xs font-medium uppercase tracking-[0.16em] text-muted">PaperBright</p>
+						<p class="text-lg font-semibold leading-tight">Terms of Service</p>
+					</div>
+				</a>
+				<a class="rounded-lg border border-line bg-white px-3 py-2 text-sm font-medium text-inherit no-underline" href="/">Open editor</a>
+			</header>
+
+			<article class="theme-panel rounded-lg border border-line bg-white/95 p-5 leading-7 shadow-sm sm:p-7">
+				<p class="theme-muted text-sm text-muted">Effective date: {effectiveDate}</p>
+				<h1 class="mt-3 text-3xl font-semibold">Terms of Service</h1>
+				<p class="mt-4">
+					These terms apply when you use PaperBright Text Editor. By using the app, you agree to use it responsibly and only for
+					lawful purposes.
+				</p>
+
+				<h2 class="mt-7 text-xl font-semibold">Your content</h2>
+				<p class="mt-3">
+					You keep ownership of the documents, notes, file names, and fonts you use with PaperBright. You are responsible for the
+					content you write, import, export, or save to Google Drive.
+				</p>
+
+				<h2 class="mt-7 text-xl font-semibold">Local editor behavior</h2>
+				<p class="mt-3">
+					PaperBright is a browser editor. Drafts and settings may be stored in your browser storage on the device and browser you
+					use. Clearing browser storage may remove local drafts and preferences.
+				</p>
+
+				<h2 class="mt-7 text-xl font-semibold">Google Drive live save</h2>
+				<p class="mt-3">
+					Google Drive connection is optional. If you connect it, PaperBright uses your permission to create or update files through
+					the limited <code>drive.file</code> scope. You can revoke access from your Google Account at any time.
+				</p>
+
+				<h2 class="mt-7 text-xl font-semibold">Acceptable use</h2>
+				<ul class="mt-3 list-disc space-y-2 pl-6">
+					<li>Do not use PaperBright to violate laws or the rights of others.</li>
+					<li>Do not attempt to disrupt, reverse engineer, overload, or abuse the service.</li>
+					<li>Do not upload fonts or content unless you have the rights needed to use them.</li>
+				</ul>
+
+				<h2 class="mt-7 text-xl font-semibold">Third-party services</h2>
+				<p class="mt-3">
+					PaperBright depends on third-party services including Vercel for hosting and Google for optional sign-in and Drive access.
+					Those services may have their own terms and policies.
+				</p>
+
+				<h2 class="mt-7 text-xl font-semibold">No warranties</h2>
+				<p class="mt-3">
+					PaperBright is provided as is and as available. The app may change, pause, or stop working, and no guarantee is made that
+					local drafts or Drive saves will always be available.
+				</p>
+
+				<h2 class="mt-7 text-xl font-semibold">Limitation of liability</h2>
+				<p class="mt-3">
+					To the maximum extent allowed by law, PaperBright and its maintainers are not liable for lost content, lost profits,
+					interruption, or other damages related to use of the app.
+				</p>
+
+				<h2 class="mt-7 text-xl font-semibold">Changes</h2>
+				<p class="mt-3">These terms may be updated as PaperBright changes. The effective date will show when the terms were last updated.</p>
+
+				<h2 class="mt-7 text-xl font-semibold">Contact</h2>
+				<p class="mt-3">
+					For questions, open an issue at
+					<a class="font-medium text-signal underline" href="https://github.com/MindMatrix-07/PaperBright">MindMatrix-07/PaperBright</a>.
+				</p>
+			</article>
+		</main>
+	</body>
+</html>
