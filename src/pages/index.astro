@@ -2,7 +2,7 @@
 import '../styles/global.css';
 import { icons } from 'lucide';
 
-const googleOAuthClientId = import.meta.env.PUBLIC_GOOGLE_CLIENT_ID ?? '';
+const googleOAuthClientId = (import.meta.env.PUBLIC_GOOGLE_CLIENT_ID ?? '').replace(/^\uFEFF/, '').trim();
 
 const attributes = (attrs: Record<string, string | number>) =>
 	Object.entries(attrs)
