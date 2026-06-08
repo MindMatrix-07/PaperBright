@@ -28,21 +28,34 @@ PaperBright uses Google Identity Services in the browser and Drive API `drive.fi
 https://paperbright.vercel.app
 ```
 
-4. For local testing, also add:
+4. Add this authorized redirect URI:
+
+```text
+https://paperbright.vercel.app/
+```
+
+5. For local testing, also add these JavaScript origins:
 
 ```text
 http://localhost:4321
 http://127.0.0.1:4322
 ```
 
-5. Enable the Google Drive API for the same Google Cloud project.
-6. In Vercel, add this environment variable for Production:
+6. For local redirect testing, also add these redirect URIs:
+
+```text
+http://localhost:4321/
+http://127.0.0.1:4322/
+```
+
+7. Enable the Google Drive API for the same Google Cloud project.
+8. In Vercel, add this environment variable for Production:
 
 ```text
 PUBLIC_GOOGLE_CLIENT_ID=your-oauth-client-id.apps.googleusercontent.com
 ```
 
-7. Redeploy the Vercel project.
+9. Redeploy the Vercel project.
 
 The OAuth Client ID is public browser configuration, not a client secret. Do not add a Google OAuth client secret to this app.
 

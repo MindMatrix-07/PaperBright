@@ -213,8 +213,6 @@ Try the toolbar, save locally, import a text file, or export your current draft.
 			let liveSaveTimer = null;
 			let driveAccessToken = null;
 			let driveFileId = null;
-			let driveTokenClient = null;
-			let driveConnectTimer = null;
 
 			const builtInFonts = {
 				system: 'var(--font-sans)',
@@ -222,6 +220,7 @@ Try the toolbar, save locally, import a text file, or export your current draft.
 				mono: 'var(--font-mono)',
 			};
 			const driveScope = 'https://www.googleapis.com/auth/drive.file';
+			const driveOAuthStateKey = 'paperbright.drive.oauth.state';
 
 			const formatDate = (value) =>
 				new Intl.DateTimeFormat(undefined, {
@@ -342,31 +341,6 @@ Try the toolbar, save locally, import a text file, or export your current draft.
 					reader.readAsDataURL(file);
 				});
 
-			const loadScript = (src) =>
-				new Promise((resolve, reject) => {
-					const existing = document.querySelector(`script[src="${src}"]`);
-					if (existing) {
-						resolve();
-						return;
-					}
-
-					const script = document.createElement('script');
-					script.src = src;
-					script.async = true;
-					script.defer = true;
-					script.addEventListener('load', resolve);
-					script.addEventListener('error', reject);
-					document.head.append(script);
-				});
-
-			const finishDriveConnectAttempt = (status) => {
-				window.clearTimeout(driveConnectTimer);
-				driveConnectTimer = null;
-				driveStatus.textContent = status;
-				connectDrive.disabled = false;
-				connectDrive.removeAttribute('aria-busy');
-			};
-
 			const driveConnectErrorStatus = (error) => {
 				const message = String(error?.message || error || '').toLowerCase();
 				if (message.includes('popup') || message.includes('cancel')) return 'Sign-in cancelled';
@@ -375,6 +349,56 @@ Try the toolbar, save locally, import a text file, or export your current draft.
 				if (message.includes('idpiframe')) return 'Cookies blocked';
 				if (message.includes('script')) return 'Google blocked';
 				return 'Connect failed';
+			};
+
+			const oauthRedirectUri = () => `${window.location.origin}${window.location.pathname}`;
+
+			const startGoogleDriveRedirect = (clientId) => {
+				const state = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+				sessionStorage.setItem(driveOAuthStateKey, state);
+
+				const params = new URLSearchParams({
+					client_id: clientId,
+					redirect_uri: oauthRedirectUri(),
+					response_type: 'token',
+					scope: driveScope,
+					include_granted_scopes: 'true',
+					prompt: 'consent',
+					state,
+				});
+
+				driveStatus.textContent = 'Opening Google...';
+				window.location.assign(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
+			};
+
+			const handleGoogleDriveRedirect = async () => {
+				const fragment = new URLSearchParams(window.location.hash.slice(1));
+				if (!fragment.has('access_token') && !fragment.has('error')) return false;
+
+				window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+				const expectedState = sessionStorage.getItem(driveOAuthStateKey);
+				sessionStorage.removeItem(driveOAuthStateKey);
+
+				if (fragment.get('state') !== expectedState) {
+					driveStatus.textContent = 'Sign-in blocked';
+					return true;
+				}
+
+				if (fragment.has('error')) {
+					driveStatus.textContent = driveConnectErrorStatus(fragment.get('error'));
+					return true;
+				}
+
+				const grantedScopes = fragment.get('scope') || '';
+				if (!grantedScopes.includes(driveScope)) {
+					driveStatus.textContent = 'Scope denied';
+					return true;
+				}
+
+				driveAccessToken = fragment.get('access_token');
+				driveStatus.textContent = 'Connected';
+				await saveDocument({ mode: 'manual' });
+				return true;
 			};
 
 			const registerCustomFont = async ({ family, label, name, source }) => {
@@ -517,53 +541,7 @@ Try the toolbar, save locally, import a text file, or export your current draft.
 					return;
 				}
 
-				window.clearTimeout(driveConnectTimer);
-				connectDrive.disabled = true;
-				connectDrive.setAttribute('aria-busy', 'true');
-				driveStatus.textContent = 'Opening Google...';
-				try {
-					await loadScript('https://accounts.google.com/gsi/client');
-					await new Promise((resolve, reject) => {
-						let settled = false;
-						const settle = (handler, value) => {
-							if (settled) return;
-							settled = true;
-							window.clearTimeout(driveConnectTimer);
-							handler(value);
-						};
-
-						driveConnectTimer = window.setTimeout(() => {
-							settle(reject, new Error('timeout'));
-						}, 45000);
-
-						driveTokenClient = google.accounts.oauth2.initTokenClient({
-							client_id: clientId,
-							scope: driveScope,
-							callback: (response) => {
-								if (response?.error) {
-									settle(reject, new Error(response.error));
-									return;
-								}
-								if (!response?.access_token) {
-									settle(reject, new Error('No Google access token returned'));
-									return;
-								}
-								driveAccessToken = response.access_token;
-								settle(resolve);
-							},
-							error_callback: (error) => {
-								settle(reject, new Error(error?.type || 'Google sign-in failed'));
-							},
-						});
-						driveTokenClient.requestAccessToken({ prompt: 'consent' });
-						driveStatus.textContent = 'Finish Google popup';
-					});
-					finishDriveConnectAttempt('Connected');
-					await saveDocument({ mode: 'manual' });
-				} catch (error) {
-					driveAccessToken = null;
-					finishDriveConnectAttempt(driveConnectErrorStatus(error));
-				}
+				startGoogleDriveRedirect(clientId);
 			};
 
 			const loadDocument = () => {
@@ -706,8 +684,13 @@ Try the toolbar, save locally, import a text file, or export your current draft.
 				}
 			});
 
-			loadDocument();
-			if (!googleOAuthClientId) driveStatus.textContent = 'Setup required';
+			const bootPaperBright = async () => {
+				loadDocument();
+				const handledDriveRedirect = await handleGoogleDriveRedirect();
+				if (!googleOAuthClientId && !handledDriveRedirect) driveStatus.textContent = 'Setup required';
+			};
+
+			bootPaperBright();
 		</script>
 	</body>
 </html>
