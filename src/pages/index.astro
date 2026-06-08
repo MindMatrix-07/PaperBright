@@ -189,7 +189,7 @@ Try the toolbar, save locally, import a text file, or export your current draft.
 								<p class="theme-muted text-muted">Google Drive</p>
 								<p id="driveStatus" class="font-mono text-xs">Not connected</p>
 							</div>
-							<div class="flex flex-wrap items-center gap-2">
+							<div id="driveSignedOutControls" class="flex flex-wrap items-center gap-2">
 								<button
 									id="connectDrive"
 									class="google-button flex h-9 items-center gap-2 px-3 text-sm font-medium"
@@ -202,6 +202,10 @@ Try the toolbar, save locally, import a text file, or export your current draft.
 									<input id="driveLiveSave" type="checkbox" checked />
 									Drive live save
 								</label>
+							</div>
+							<div id="driveSignedInControls" class="hidden flex-wrap items-center gap-2">
+								<p class="theme-muted text-sm text-muted">Google Drive is connected.</p>
+								<button id="signOutDrive" class="compact-button" type="button">Sign out</button>
 							</div>
 						</div>
 					</section>
@@ -231,8 +235,11 @@ Try the toolbar, save locally, import a text file, or export your current draft.
 			const fontInput = document.querySelector('#fontInput');
 			const fontSize = document.querySelector('#fontSize');
 			const connectDrive = document.querySelector('#connectDrive');
+			const signOutDrive = document.querySelector('#signOutDrive');
 			const driveStatus = document.querySelector('#driveStatus');
 			const driveLiveSave = document.querySelector('#driveLiveSave');
+			const driveSignedOutControls = document.querySelector('#driveSignedOutControls');
+			const driveSignedInControls = document.querySelector('#driveSignedInControls');
 			const pluginToggles = document.querySelectorAll('[data-plugin-toggle]');
 			const chooseMusic = document.querySelector('#chooseMusic');
 			const clearMusic = document.querySelector('#clearMusic');
@@ -258,6 +265,27 @@ Try the toolbar, save locally, import a text file, or export your current draft.
 			const driveScope = 'https://www.googleapis.com/auth/drive.file';
 			const driveOAuthStateKey = 'paperbright.drive.oauth.state';
 			const emptyMusicLabel = 'No track';
+
+			const setDriveStatus = (status) => {
+				driveStatus.textContent = status;
+			};
+
+			const renderDriveControls = () => {
+				const connected = Boolean(driveAccessToken);
+				driveSignedOutControls.classList.toggle('hidden', connected);
+				driveSignedOutControls.classList.toggle('flex', !connected);
+				driveSignedInControls.classList.toggle('hidden', !connected);
+				driveSignedInControls.classList.toggle('flex', connected);
+			};
+
+			const signOutGoogleDrive = () => {
+				driveAccessToken = null;
+				driveFileId = null;
+				driveLiveSave.checked = false;
+				setDriveStatus('Not connected');
+				renderDriveControls();
+				markDirty();
+			};
 
 			const formatDate = (value) =>
 				new Intl.DateTimeFormat(undefined, {
@@ -404,7 +432,7 @@ Try the toolbar, save locally, import a text file, or export your current draft.
 					state,
 				});
 
-				driveStatus.textContent = 'Opening Google...';
+				setDriveStatus('Opening Google...');
 				window.location.assign(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
 			};
 
@@ -417,23 +445,24 @@ Try the toolbar, save locally, import a text file, or export your current draft.
 				sessionStorage.removeItem(driveOAuthStateKey);
 
 				if (fragment.get('state') !== expectedState) {
-					driveStatus.textContent = 'Sign-in blocked';
+					setDriveStatus('Sign-in blocked');
 					return true;
 				}
 
 				if (fragment.has('error')) {
-					driveStatus.textContent = driveConnectErrorStatus(fragment.get('error'));
+					setDriveStatus(driveConnectErrorStatus(fragment.get('error')));
 					return true;
 				}
 
 				const grantedScopes = fragment.get('scope') || '';
 				if (!grantedScopes.includes(driveScope)) {
-					driveStatus.textContent = 'Scope denied';
+					setDriveStatus('Scope denied');
 					return true;
 				}
 
 				driveAccessToken = fragment.get('access_token');
-				driveStatus.textContent = 'Connected';
+				setDriveStatus('Connected');
+				renderDriveControls();
 				await saveDocument({ mode: 'manual' });
 				return true;
 			};
@@ -549,7 +578,7 @@ Try the toolbar, save locally, import a text file, or export your current draft.
 			const saveToDrive = async () => {
 				if (!driveAccessToken || !driveLiveSave.checked) return;
 
-				driveStatus.textContent = 'Saving...';
+				setDriveStatus('Saving...');
 				const metadata = {
 					name: currentFileName,
 					mimeType: 'text/plain',
@@ -569,18 +598,19 @@ Try the toolbar, save locally, import a text file, or export your current draft.
 
 				if (response.status === 401) {
 					driveAccessToken = null;
-					driveStatus.textContent = 'Reconnect';
+					setDriveStatus('Reconnect');
+					renderDriveControls();
 					throw new Error('Google Drive token expired');
 				}
 
 				if (!response.ok) {
-					driveStatus.textContent = 'Drive error';
+					setDriveStatus('Drive error');
 					throw new Error(`Google Drive save failed: ${response.status}`);
 				}
 
 				const file = await response.json();
 				driveFileId = file.id;
-				driveStatus.textContent = 'Synced';
+				setDriveStatus('Synced');
 			};
 
 			const scheduleLiveSave = () => {
@@ -617,7 +647,7 @@ Try the toolbar, save locally, import a text file, or export your current draft.
 				const saved = JSON.parse(localStorage.getItem(storageKey) || '{}');
 				const clientId = googleOAuthClientId || saved.googleClientId || '';
 				if (!clientId) {
-					driveStatus.textContent = 'Setup required';
+					setDriveStatus('Setup required');
 					return;
 				}
 
@@ -655,9 +685,9 @@ Try the toolbar, save locally, import a text file, or export your current draft.
 						setPluginEnabled(pluginId, Boolean(enabled), { dirty: false });
 					});
 					if (!googleOAuthClientId && !data.googleClientId) {
-						driveStatus.textContent = 'Setup required';
+						setDriveStatus('Setup required');
 					} else if (driveFileId) {
-						driveStatus.textContent = 'Ready';
+						setDriveStatus('Ready');
 					}
 					if (data.dark) document.documentElement.classList.add('dark-mode');
 					lastSaved.textContent = data.savedAt ? formatDate(new Date(data.savedAt)) : 'Never';
@@ -739,8 +769,9 @@ Try the toolbar, save locally, import a text file, or export your current draft.
 			});
 
 			connectDrive.addEventListener('click', connectGoogleDrive);
+			signOutDrive.addEventListener('click', signOutGoogleDrive);
 			driveLiveSave.addEventListener('change', () => {
-				driveStatus.textContent = driveAccessToken ? 'Connected' : 'Not connected';
+				setDriveStatus(driveAccessToken ? 'Connected' : 'Not connected');
 				markDirty();
 			});
 
@@ -788,7 +819,8 @@ Try the toolbar, save locally, import a text file, or export your current draft.
 			const bootPaperBright = async () => {
 				loadDocument();
 				const handledDriveRedirect = await handleGoogleDriveRedirect();
-				if (!googleOAuthClientId && !handledDriveRedirect) driveStatus.textContent = 'Setup required';
+				if (!googleOAuthClientId && !handledDriveRedirect) setDriveStatus('Setup required');
+				renderDriveControls();
 			};
 
 			bootPaperBright();
