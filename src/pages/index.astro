@@ -214,6 +214,7 @@ Try the toolbar, save locally, import a text file, or export your current draft.
 			let driveAccessToken = null;
 			let driveFileId = null;
 			let driveTokenClient = null;
+			let driveConnectTimer = null;
 
 			const builtInFonts = {
 				system: 'var(--font-sans)',
@@ -358,6 +359,24 @@ Try the toolbar, save locally, import a text file, or export your current draft.
 					document.head.append(script);
 				});
 
+			const finishDriveConnectAttempt = (status) => {
+				window.clearTimeout(driveConnectTimer);
+				driveConnectTimer = null;
+				driveStatus.textContent = status;
+				connectDrive.disabled = false;
+				connectDrive.removeAttribute('aria-busy');
+			};
+
+			const driveConnectErrorStatus = (error) => {
+				const message = String(error?.message || error || '').toLowerCase();
+				if (message.includes('popup') || message.includes('cancel')) return 'Sign-in cancelled';
+				if (message.includes('access_denied')) return 'Access denied';
+				if (message.includes('timeout')) return 'Check Google popup';
+				if (message.includes('idpiframe')) return 'Cookies blocked';
+				if (message.includes('script')) return 'Google blocked';
+				return 'Connect failed';
+			};
+
 			const registerCustomFont = async ({ family, label, name, source }) => {
 				const visibleLabel = cleanFontLabel(label || name || family);
 				const fontFamilyName = family || name || `PaperBright ${visibleLabel}`;
@@ -498,28 +517,52 @@ Try the toolbar, save locally, import a text file, or export your current draft.
 					return;
 				}
 
-				driveStatus.textContent = 'Connecting...';
+				window.clearTimeout(driveConnectTimer);
+				connectDrive.disabled = true;
+				connectDrive.setAttribute('aria-busy', 'true');
+				driveStatus.textContent = 'Opening Google...';
 				try {
 					await loadScript('https://accounts.google.com/gsi/client');
 					await new Promise((resolve, reject) => {
+						let settled = false;
+						const settle = (handler, value) => {
+							if (settled) return;
+							settled = true;
+							window.clearTimeout(driveConnectTimer);
+							handler(value);
+						};
+
+						driveConnectTimer = window.setTimeout(() => {
+							settle(reject, new Error('timeout'));
+						}, 45000);
+
 						driveTokenClient = google.accounts.oauth2.initTokenClient({
 							client_id: clientId,
 							scope: driveScope,
 							callback: (response) => {
-								if (response.error) {
-									reject(new Error(response.error));
+								if (response?.error) {
+									settle(reject, new Error(response.error));
+									return;
+								}
+								if (!response?.access_token) {
+									settle(reject, new Error('No Google access token returned'));
 									return;
 								}
 								driveAccessToken = response.access_token;
-								resolve();
+								settle(resolve);
+							},
+							error_callback: (error) => {
+								settle(reject, new Error(error?.type || 'Google sign-in failed'));
 							},
 						});
 						driveTokenClient.requestAccessToken({ prompt: 'consent' });
+						driveStatus.textContent = 'Finish Google popup';
 					});
-					driveStatus.textContent = 'Connected';
+					finishDriveConnectAttempt('Connected');
 					await saveDocument({ mode: 'manual' });
-				} catch {
-					driveStatus.textContent = 'Connect failed';
+				} catch (error) {
+					driveAccessToken = null;
+					finishDriveConnectAttempt(driveConnectErrorStatus(error));
 				}
 			};
 
