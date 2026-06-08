@@ -1,43 +1,51 @@
-# Astro Starter Kit: Minimal
+# PaperBright Text Editor
+
+PaperBright is a focused Astro text editor with local live-save, custom font upload, export/import, and optional Google Drive live-save.
+
+## Local Development
 
 ```sh
-npm create astro@latest -- --template minimal
+npm install
+npm run dev
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+## Build
 
-## 🚀 Project Structure
+```sh
+npm run build
+npm run preview
+```
 
-Inside of your Astro project, you'll see the following folders and files:
+## Google Drive Login
+
+PaperBright uses Google Identity Services in the browser and Drive API `drive.file` scope. To enable the public **Sign in with Google** button:
+
+1. In Google Cloud Console, create an OAuth 2.0 Client ID.
+2. Choose **Web application**.
+3. Add this authorized JavaScript origin:
 
 ```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
+https://paperbright.vercel.app
 ```
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+4. For local testing, also add:
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+```text
+http://localhost:4321
+http://127.0.0.1:4322
+```
 
-Any static assets, like images, can be placed in the `public/` directory.
+5. Enable the Google Drive API for the same Google Cloud project.
+6. In Vercel, add this environment variable for Production:
 
-## 🧞 Commands
+```text
+PUBLIC_GOOGLE_CLIENT_ID=your-oauth-client-id.apps.googleusercontent.com
+```
 
-All commands are run from the root of the project, from a terminal:
+7. Redeploy the Vercel project.
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+The OAuth Client ID is public browser configuration, not a client secret. Do not add a Google OAuth client secret to this app.
 
-## 👀 Want to learn more?
+## Vercel
 
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+The app is static and deploys normally on Vercel. If the production site shows `Setup required` beside Google Drive, the `PUBLIC_GOOGLE_CLIENT_ID` environment variable is missing from the deployed build.
