@@ -1,0 +1,670 @@
+---
+import '../styles/global.css';
+import { icons } from 'lucide';
+
+const googleOAuthClientId = import.meta.env.PUBLIC_GOOGLE_CLIENT_ID ?? '';
+
+const attributes = (attrs: Record<string, string | number>) =>
+	Object.entries(attrs)
+		.map(([key, value]) => `${key}="${String(value)}"`)
+		.join(' ');
+
+const icon = (name: keyof typeof icons) => {
+	const children = icons[name]
+		.map(([tag, attrs]) => `<${tag} ${attributes(attrs)}></${tag}>`)
+		.join('');
+
+	return `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${children}</svg>`;
+};
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" href="/favicon.ico" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="generator" content={Astro.generator} />
+		<meta
+			name="description"
+			content="PaperBright is a focused browser text editor for drafting, reviewing, and exporting plain text documents."
+		/>
+		<title>PaperBright Text Editor</title>
+	</head>
+	<body>
+		<main class="mx-auto flex min-h-screen w-full max-w-[1440px] flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
+			<header class="theme-panel flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-white/90 px-4 py-3 shadow-sm backdrop-blur">
+				<div class="flex min-w-0 items-center gap-3">
+					<div class="paperbright-logo flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-ink text-paper" aria-hidden="true">
+						<svg width="25" height="25" viewBox="0 0 25 25" fill="none" role="img">
+							<path d="M7 3.5h8.2L20 8.3V21H7V3.5Z" fill="white" />
+							<path d="M15.2 3.5V8.3H20" fill="#dbeafe" />
+							<path d="M10 12.2h7" stroke="#0a0a0a" stroke-width="1.8" stroke-linecap="round" />
+							<path d="M10 15.8h5.2" stroke="#0a0a0a" stroke-width="1.8" stroke-linecap="round" />
+							<path d="M7 3.5h8.2L20 8.3V21H7V3.5Z" stroke="white" stroke-width="1.7" stroke-linejoin="round" />
+							<path d="M6.2 18.8c3.2-1.2 6.8-1.2 10 0" stroke="#60a5fa" stroke-width="1.9" stroke-linecap="round" />
+						</svg>
+					</div>
+					<div class="min-w-0">
+						<p class="theme-muted text-xs font-medium uppercase tracking-[0.16em] text-muted">PaperBright</p>
+						<button
+							id="fileNameButton"
+							class="block max-w-[16rem] truncate text-left text-lg font-semibold leading-tight text-inherit outline-none focus-visible:underline"
+							type="button"
+							title="Rename file"
+							aria-label="Rename file"
+						>
+							<span id="fileName">Bright draft.txt</span>
+						</button>
+					</div>
+				</div>
+
+				<div class="flex flex-wrap items-center gap-2">
+					<button class="icon-button" id="newDoc" type="button" title="New document" aria-label="New document" set:html={icon('FilePlus2')} />
+					<button class="icon-button" id="saveDoc" type="button" title="Save locally" aria-label="Save locally" set:html={icon('Save')} />
+					<button class="icon-button" id="importDoc" type="button" title="Import text file" aria-label="Import text file" set:html={icon('Upload')} />
+					<button class="icon-button" id="exportDoc" type="button" title="Export text file" aria-label="Export text file" set:html={icon('Download')} />
+					<button class="icon-button" id="themeToggle" type="button" title="Toggle dark mode" aria-label="Toggle dark mode" set:html={icon('Moon')} />
+					<button class="icon-button" id="focusToggle" type="button" title="Focus mode" aria-label="Focus mode" set:html={icon('Maximize2')} />
+					<input id="fileInput" type="file" accept=".txt,text/plain,.md,.markdown" hidden />
+				</div>
+			</header>
+
+			<section class="editor-shell grid flex-1 grid-cols-[minmax(0,1fr)_20rem] gap-4">
+				<div class="theme-panel flex min-w-0 flex-col rounded-lg border border-line bg-white/95 shadow-sm">
+					<div class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3">
+						<div class="flex flex-wrap items-center gap-2" role="toolbar" aria-label="Formatting toolbar">
+							<button class="icon-button" data-command="bold" type="button" title="Bold" aria-label="Bold" set:html={icon('Bold')} />
+							<button class="icon-button" data-command="italic" type="button" title="Italic" aria-label="Italic" set:html={icon('Italic')} />
+							<button class="icon-button" data-command="insertUnorderedList" type="button" title="Bullet list" aria-label="Bullet list" set:html={icon('List')} />
+							<button class="icon-button" data-command="insertOrderedList" type="button" title="Numbered list" aria-label="Numbered list" set:html={icon('ListOrdered')} />
+						</div>
+						<div class="flex flex-wrap items-center gap-2">
+							<label class="theme-muted text-sm font-medium text-muted" for="fontFamily">Font</label>
+							<select
+								id="fontFamily"
+								class="theme-soft h-9 max-w-36 rounded-lg border border-line bg-soft px-3 text-sm outline-none"
+								aria-label="Editor font family"
+							>
+								<option value="system">Sans</option>
+								<option value="serif">Serif</option>
+								<option value="mono">Mono</option>
+							</select>
+							<button class="icon-button" id="uploadFont" type="button" title="Upload custom font" aria-label="Upload custom font" set:html={icon('Type')} />
+							<input id="fontInput" type="file" accept=".ttf,.otf,.woff,.woff2,font/ttf,font/otf,font/woff,font/woff2" hidden />
+							<label class="theme-muted text-sm font-medium text-muted" for="fontSize">Size</label>
+							<input
+								id="fontSize"
+								class="theme-soft h-9 w-20 rounded-lg border border-line bg-soft px-3 text-sm outline-none"
+								type="number"
+								min="14"
+								max="24"
+								value="17"
+								aria-label="Editor font size"
+							/>
+						</div>
+					</div>
+
+					<article
+						id="editor"
+						class="editor-surface flex-1 px-5 py-5 text-[17px] leading-[1.75] text-inherit sm:px-8 sm:py-7"
+						contenteditable="true"
+						spellcheck="true"
+						data-placeholder="Start writing in PaperBright..."
+						aria-label="PaperBright document editor"
+					>
+						PaperBright is ready. Draft a memo, outline a launch, or polish a note without leaving the browser.
+
+Try the toolbar, save locally, import a text file, or export your current draft.
+					</article>
+
+					<footer class="flex flex-wrap items-center justify-between gap-2 border-t border-line px-4 py-3 text-sm">
+						<span id="saveState" class="theme-muted text-muted">Unsaved changes</span>
+						<span id="storageState" class="theme-muted text-muted">Live save ready</span>
+					</footer>
+				</div>
+
+				<aside class="theme-panel flex min-w-0 flex-col gap-4 rounded-lg border border-line bg-white/95 p-4 shadow-sm">
+					<section>
+						<h2 class="text-sm font-semibold">Document Stats</h2>
+						<div class="mt-3 grid grid-cols-2 gap-2">
+							<div class="theme-soft rounded-lg border border-line bg-soft p-3">
+								<p class="theme-muted text-xs text-muted">Words</p>
+								<p id="wordCount" class="font-mono text-2xl font-semibold">0</p>
+							</div>
+							<div class="theme-soft rounded-lg border border-line bg-soft p-3">
+								<p class="theme-muted text-xs text-muted">Characters</p>
+								<p id="charCount" class="font-mono text-2xl font-semibold">0</p>
+							</div>
+							<div class="theme-soft rounded-lg border border-line bg-soft p-3">
+								<p class="theme-muted text-xs text-muted">Sentences</p>
+								<p id="sentenceCount" class="font-mono text-2xl font-semibold">0</p>
+							</div>
+							<div class="theme-soft rounded-lg border border-line bg-soft p-3">
+								<p class="theme-muted text-xs text-muted">Read</p>
+								<p id="readingTime" class="font-mono text-2xl font-semibold">0m</p>
+							</div>
+						</div>
+					</section>
+
+					<section>
+						<h2 class="text-sm font-semibold">Quick Notes</h2>
+						<textarea
+							id="scratchpad"
+							class="theme-soft mt-3 min-h-36 w-full resize-y rounded-lg border border-line bg-soft p-3 text-sm leading-6 outline-none"
+							placeholder="Keep side thoughts here."
+						></textarea>
+					</section>
+
+					<section>
+						<h2 class="text-sm font-semibold">Session</h2>
+						<div class="theme-soft mt-3 space-y-2 rounded-lg border border-line bg-soft p-3 text-sm">
+							<p class="theme-muted text-muted">Last saved</p>
+							<p id="lastSaved" class="font-mono">Never</p>
+						</div>
+						<div class="theme-soft mt-3 space-y-3 rounded-lg border border-line bg-soft p-3 text-sm">
+							<div class="flex items-center justify-between gap-3">
+								<p class="theme-muted text-muted">Google Drive</p>
+								<p id="driveStatus" class="font-mono text-xs">Not connected</p>
+							</div>
+							<div class="flex flex-wrap items-center gap-2">
+								<button
+									id="connectDrive"
+									class="flex h-9 items-center gap-2 rounded-lg border border-line bg-white px-3 text-sm font-medium"
+									type="button"
+								>
+									<span class="google-mark" aria-hidden="true">G</span>
+									<span>Sign in with Google</span>
+								</button>
+								<label class="theme-muted flex items-center gap-2 text-sm text-muted">
+									<input id="driveLiveSave" type="checkbox" checked />
+									Drive live save
+								</label>
+							</div>
+						</div>
+					</section>
+				</aside>
+			</section>
+		</main>
+
+		<script define:vars={{ googleOAuthClientId }}>
+			const storageKey = 'paperbright.document.v1';
+			const editor = document.querySelector('#editor');
+			const fileName = document.querySelector('#fileName');
+			const fileNameButton = document.querySelector('#fileNameButton');
+			const scratchpad = document.querySelector('#scratchpad');
+			const fileInput = document.querySelector('#fileInput');
+			const saveState = document.querySelector('#saveState');
+			const storageState = document.querySelector('#storageState');
+			const lastSaved = document.querySelector('#lastSaved');
+			const wordCount = document.querySelector('#wordCount');
+			const charCount = document.querySelector('#charCount');
+			const sentenceCount = document.querySelector('#sentenceCount');
+			const readingTime = document.querySelector('#readingTime');
+			const fontFamily = document.querySelector('#fontFamily');
+			const fontInput = document.querySelector('#fontInput');
+			const fontSize = document.querySelector('#fontSize');
+			const connectDrive = document.querySelector('#connectDrive');
+			const driveStatus = document.querySelector('#driveStatus');
+			const driveLiveSave = document.querySelector('#driveLiveSave');
+			let currentFileName = 'Bright draft.txt';
+			let savedRange = null;
+			let customFont = null;
+			let liveSaveTimer = null;
+			let driveAccessToken = null;
+			let driveFileId = null;
+			let driveTokenClient = null;
+
+			const builtInFonts = {
+				system: 'var(--font-sans)',
+				serif: 'Georgia, "Times New Roman", serif',
+				mono: 'var(--font-mono)',
+			};
+			const driveScope = 'https://www.googleapis.com/auth/drive.file';
+
+			const formatDate = (value) =>
+				new Intl.DateTimeFormat(undefined, {
+					hour: 'numeric',
+					minute: '2-digit',
+					month: 'short',
+					day: 'numeric',
+				}).format(value);
+
+			const plainText = () => editor?.innerText.trim() ?? '';
+
+			const selectionIsInEditor = () => {
+				const selection = window.getSelection();
+				return Boolean(
+					selection?.rangeCount &&
+						editor.contains(selection.anchorNode) &&
+						editor.contains(selection.focusNode)
+				);
+			};
+
+			const saveEditorSelection = () => {
+				if (!selectionIsInEditor()) return;
+				savedRange = window.getSelection().getRangeAt(0).cloneRange();
+			};
+
+			const restoreEditorSelection = () => {
+				const selection = window.getSelection();
+				if (!selection || !savedRange) return false;
+				selection.removeAllRanges();
+				selection.addRange(savedRange);
+				return true;
+			};
+
+			const fallbackList = (tagName) => {
+				const text = plainText();
+				if (!text) {
+					editor.innerHTML = `<${tagName}><li><br></li></${tagName}>`;
+					return;
+				}
+
+				const items = text
+					.split(/\n+/)
+					.map((line) => line.trim())
+					.filter(Boolean)
+					.map((line) => `<li>${line.replace(/[&<>"']/g, (char) => ({
+						'&': '&amp;',
+						'<': '&lt;',
+						'>': '&gt;',
+						'"': '&quot;',
+						"'": '&#39;',
+					})[char])}</li>`)
+					.join('');
+
+				editor.innerHTML = `<${tagName}>${items}</${tagName}>`;
+			};
+
+			const runEditorCommand = (command) => {
+				const hasLiveSelection = selectionIsInEditor();
+				editor.focus();
+				const hadSelection = hasLiveSelection && restoreEditorSelection();
+
+				if (!hadSelection && (command === 'insertOrderedList' || command === 'insertUnorderedList')) {
+					fallbackList(command === 'insertOrderedList' ? 'ol' : 'ul');
+					saveEditorSelection();
+					markDirty();
+					return;
+				}
+
+				const succeeded = document.execCommand(command, false);
+
+				if (!succeeded && (command === 'insertOrderedList' || command === 'insertUnorderedList')) {
+					fallbackList(command === 'insertOrderedList' ? 'ol' : 'ul');
+				}
+
+				saveEditorSelection();
+				markDirty();
+			};
+
+			const normalizeFileName = (value) => {
+				const trimmed = value.trim().replace(/[\\/:*?"<>|]+/g, '-');
+				if (!trimmed) return 'Untitled draft.txt';
+				return /\.[a-z0-9]+$/i.test(trimmed) ? trimmed : `${trimmed}.txt`;
+			};
+
+			const setFileName = (value) => {
+				currentFileName = normalizeFileName(value);
+				fileName.textContent = currentFileName;
+				fileNameButton.title = `Rename ${currentFileName}`;
+			};
+
+			const applyFontFamily = () => {
+				if (fontFamily.value === 'custom' && customFont?.family) {
+					editor.style.fontFamily = `"${customFont.family}", var(--font-sans)`;
+					return;
+				}
+
+				editor.style.fontFamily = builtInFonts[fontFamily.value] || builtInFonts.system;
+			};
+
+			const cleanFontLabel = (value) =>
+				(value || 'Custom Font').replace(/^PaperBright\s+/i, '').trim() || 'Custom Font';
+
+			const ensureCustomFontOption = (label) => {
+				let option = fontFamily.querySelector('option[value="custom"]');
+				if (!option) {
+					option = document.createElement('option');
+					option.value = 'custom';
+					fontFamily.append(option);
+				}
+				option.textContent = label;
+			};
+
+			const readFileAsDataUrl = (file) =>
+				new Promise((resolve, reject) => {
+					const reader = new FileReader();
+					reader.addEventListener('load', () => resolve(reader.result));
+					reader.addEventListener('error', () => reject(reader.error));
+					reader.readAsDataURL(file);
+				});
+
+			const loadScript = (src) =>
+				new Promise((resolve, reject) => {
+					const existing = document.querySelector(`script[src="${src}"]`);
+					if (existing) {
+						resolve();
+						return;
+					}
+
+					const script = document.createElement('script');
+					script.src = src;
+					script.async = true;
+					script.defer = true;
+					script.addEventListener('load', resolve);
+					script.addEventListener('error', reject);
+					document.head.append(script);
+				});
+
+			const registerCustomFont = async ({ family, label, name, source }) => {
+				const visibleLabel = cleanFontLabel(label || name || family);
+				const fontFamilyName = family || name || `PaperBright ${visibleLabel}`;
+				const face = new FontFace(fontFamilyName, `url(${source})`);
+				await face.load();
+				document.fonts.add(face);
+				customFont = { family: fontFamilyName, label: visibleLabel, source };
+				ensureCustomFontOption(visibleLabel);
+				fontFamily.value = 'custom';
+				applyFontFamily();
+			};
+
+			const uploadCustomFont = async (file) => {
+				const baseName = file.name.replace(/\.[^.]+$/, '').replace(/[^a-z0-9 _-]/gi, ' ').trim();
+				const label = baseName || 'Custom Font';
+				const family = `PaperBright ${crypto.randomUUID ? crypto.randomUUID() : Date.now()} ${label}`;
+				const source = await readFileAsDataUrl(file);
+				await registerCustomFont({ family, label, source });
+				markDirty();
+				saveState.textContent = `Using ${label}`;
+			};
+
+			const updateStats = () => {
+				const text = plainText();
+				const words = text.match(/\b[\w'-]+\b/g) ?? [];
+				const sentences = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g)?.filter((item) => item.trim()) ?? [];
+				wordCount.textContent = String(words.length);
+				charCount.textContent = String(text.length);
+				sentenceCount.textContent = String(sentences.length);
+				readingTime.textContent = `${Math.max(1, Math.ceil(words.length / 220))}m`;
+			};
+
+			const documentSnapshot = (savedAt) => ({
+				fileName: currentFileName,
+				body: editor.innerHTML,
+				notes: scratchpad.value,
+				fontFamily: fontFamily.value,
+				customFont,
+				fontSize: fontSize.value,
+				dark: document.documentElement.classList.contains('dark-mode'),
+				driveFileId,
+				driveLiveSave: driveLiveSave.checked,
+				savedAt: savedAt.toISOString(),
+			});
+
+			const multipartBody = (metadata, content, mimeType) => {
+				const boundary = `paperbright_${Date.now().toString(36)}`;
+				const body = [
+					`--${boundary}`,
+					'Content-Type: application/json; charset=UTF-8',
+					'',
+					JSON.stringify(metadata),
+					`--${boundary}`,
+					`Content-Type: ${mimeType}; charset=UTF-8`,
+					'',
+					content,
+					`--${boundary}--`,
+					'',
+				].join('\r\n');
+
+				return { body, contentType: `multipart/related; boundary=${boundary}` };
+			};
+
+			const saveToDrive = async () => {
+				if (!driveAccessToken || !driveLiveSave.checked) return;
+
+				driveStatus.textContent = 'Saving...';
+				const metadata = {
+					name: currentFileName,
+					mimeType: 'text/plain',
+				};
+				const upload = multipartBody(metadata, plainText(), 'text/plain');
+				const endpoint = driveFileId
+					? `https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=multipart&fields=id,name,modifiedTime`
+					: 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,modifiedTime';
+				const response = await fetch(endpoint, {
+					method: driveFileId ? 'PATCH' : 'POST',
+					headers: {
+						Authorization: `Bearer ${driveAccessToken}`,
+						'Content-Type': upload.contentType,
+					},
+					body: upload.body,
+				});
+
+				if (response.status === 401) {
+					driveAccessToken = null;
+					driveStatus.textContent = 'Reconnect';
+					throw new Error('Google Drive token expired');
+				}
+
+				if (!response.ok) {
+					driveStatus.textContent = 'Drive error';
+					throw new Error(`Google Drive save failed: ${response.status}`);
+				}
+
+				const file = await response.json();
+				driveFileId = file.id;
+				driveStatus.textContent = 'Synced';
+			};
+
+			const scheduleLiveSave = () => {
+				window.clearTimeout(liveSaveTimer);
+				saveState.textContent = 'Saving locally...';
+				storageState.textContent = driveAccessToken && driveLiveSave.checked ? 'Live save + Drive' : 'Live save local';
+				liveSaveTimer = window.setTimeout(() => {
+					saveDocument({ mode: 'live' });
+				}, 650);
+			};
+
+			const markDirty = () => {
+				updateStats();
+				scheduleLiveSave();
+			};
+
+			const saveDocument = async ({ mode = 'manual', syncDrive = true } = {}) => {
+				const savedAt = new Date();
+				localStorage.setItem(storageKey, JSON.stringify(documentSnapshot(savedAt)));
+				saveState.textContent = mode === 'live' ? 'Live saved locally' : 'Saved locally';
+				storageState.textContent = 'Stored in this browser';
+				lastSaved.textContent = formatDate(savedAt);
+
+				if (syncDrive && driveAccessToken && driveLiveSave.checked) {
+					try {
+						await saveToDrive();
+						localStorage.setItem(storageKey, JSON.stringify(documentSnapshot(new Date())));
+						storageState.textContent = 'Stored in Drive';
+					} catch {
+						storageState.textContent = 'Drive save failed';
+					}
+				}
+			};
+
+			const connectGoogleDrive = async () => {
+				const saved = JSON.parse(localStorage.getItem(storageKey) || '{}');
+				const clientId = googleOAuthClientId || saved.googleClientId || '';
+				if (!clientId) {
+					driveStatus.textContent = 'Setup required';
+					return;
+				}
+
+				driveStatus.textContent = 'Connecting...';
+				try {
+					await loadScript('https://accounts.google.com/gsi/client');
+					await new Promise((resolve, reject) => {
+						driveTokenClient = google.accounts.oauth2.initTokenClient({
+							client_id: clientId,
+							scope: driveScope,
+							callback: (response) => {
+								if (response.error) {
+									reject(new Error(response.error));
+									return;
+								}
+								driveAccessToken = response.access_token;
+								resolve();
+							},
+						});
+						driveTokenClient.requestAccessToken({ prompt: 'consent' });
+					});
+					driveStatus.textContent = 'Connected';
+					await saveDocument({ mode: 'manual' });
+				} catch {
+					driveStatus.textContent = 'Connect failed';
+				}
+			};
+
+			const loadDocument = () => {
+				const saved = localStorage.getItem(storageKey);
+				if (!saved) {
+					updateStats();
+					return;
+				}
+
+				try {
+					const data = JSON.parse(saved);
+					setFileName(data.fileName || data.title || 'Bright draft.txt');
+					editor.innerHTML = data.body || '';
+					scratchpad.value = data.notes || '';
+					if ((data.customFont?.name || data.customFont?.family) && data.customFont?.source) {
+						registerCustomFont(data.customFont).catch(() => {
+							saveState.textContent = 'Could not load custom font';
+						});
+					}
+					fontFamily.value = data.fontFamily || 'system';
+					applyFontFamily();
+					fontSize.value = data.fontSize || '17';
+					editor.style.fontSize = `${fontSize.value}px`;
+					driveFileId = data.driveFileId || null;
+					driveLiveSave.checked = data.driveLiveSave !== false;
+					if (!googleOAuthClientId && !data.googleClientId) {
+						driveStatus.textContent = 'Setup required';
+					} else if (driveFileId) {
+						driveStatus.textContent = 'Ready';
+					}
+					if (data.dark) document.documentElement.classList.add('dark-mode');
+					lastSaved.textContent = data.savedAt ? formatDate(new Date(data.savedAt)) : 'Never';
+					saveState.textContent = 'Loaded saved draft';
+					storageState.textContent = 'Live save ready';
+				} catch {
+					saveState.textContent = 'Could not load saved draft';
+				}
+				updateStats();
+			};
+
+			document.querySelectorAll('[data-command]').forEach((button) => {
+				button.addEventListener('mousedown', (event) => event.preventDefault());
+				button.addEventListener('click', () => {
+					runEditorCommand(button.dataset.command);
+				});
+			});
+
+			document.querySelector('#newDoc').addEventListener('click', () => {
+				if (!confirm('Start a new document? Unsaved changes will be cleared.')) return;
+				setFileName(prompt('File name', 'Untitled draft.txt') || 'Untitled draft.txt');
+				editor.innerHTML = '';
+				scratchpad.value = '';
+				markDirty();
+				editor.focus();
+			});
+
+			fileNameButton.addEventListener('click', () => {
+				const nextName = prompt('File name', currentFileName);
+				if (!nextName) return;
+				setFileName(nextName);
+				markDirty();
+			});
+
+			document.querySelector('#saveDoc').addEventListener('click', () => saveDocument());
+			document.querySelector('#importDoc').addEventListener('click', () => fileInput.click());
+
+			fileInput.addEventListener('change', async () => {
+				const [file] = fileInput.files ?? [];
+				if (!file) return;
+				setFileName(file.name);
+				editor.textContent = await file.text();
+				fileInput.value = '';
+				markDirty();
+			});
+
+			document.querySelector('#exportDoc').addEventListener('click', () => {
+				const blob = new Blob([plainText()], { type: 'text/plain;charset=utf-8' });
+				const link = document.createElement('a');
+				link.href = URL.createObjectURL(blob);
+				link.download = currentFileName;
+				link.click();
+				URL.revokeObjectURL(link.href);
+			});
+
+			document.querySelector('#themeToggle').addEventListener('click', (event) => {
+				document.documentElement.classList.toggle('dark-mode');
+				event.currentTarget.classList.toggle('is-active');
+				markDirty();
+			});
+
+			document.querySelector('#focusToggle').addEventListener('click', async (event) => {
+				if (!document.fullscreenElement) {
+					await document.documentElement.requestFullscreen?.();
+					event.currentTarget.classList.add('is-active');
+				} else {
+					await document.exitFullscreen?.();
+					event.currentTarget.classList.remove('is-active');
+				}
+			});
+
+			fontSize.addEventListener('input', () => {
+				editor.style.fontSize = `${fontSize.value}px`;
+				markDirty();
+			});
+
+			fontFamily.addEventListener('change', () => {
+				applyFontFamily();
+				markDirty();
+			});
+
+			connectDrive.addEventListener('click', connectGoogleDrive);
+			driveLiveSave.addEventListener('change', () => {
+				driveStatus.textContent = driveAccessToken ? 'Connected' : 'Not connected';
+				markDirty();
+			});
+
+			document.querySelector('#uploadFont').addEventListener('click', () => fontInput.click());
+			fontInput.addEventListener('change', async () => {
+				const [file] = fontInput.files ?? [];
+				if (!file) return;
+
+				try {
+					await uploadCustomFont(file);
+				} catch {
+					saveState.textContent = 'Could not load that font';
+				} finally {
+					fontInput.value = '';
+				}
+			});
+
+			editor.addEventListener('keyup', saveEditorSelection);
+			editor.addEventListener('mouseup', saveEditorSelection);
+			editor.addEventListener('focus', saveEditorSelection);
+			document.addEventListener('selectionchange', saveEditorSelection);
+			[editor, scratchpad].forEach((node) => node.addEventListener('input', markDirty));
+			window.addEventListener('keydown', (event) => {
+				if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+					event.preventDefault();
+					saveDocument();
+				}
+			});
+
+			loadDocument();
+			if (!googleOAuthClientId) driveStatus.textContent = 'Setup required';
+		</script>
+	</body>
+</html>

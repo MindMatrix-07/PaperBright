@@ -1,0 +1,178 @@
+@import "tailwindcss";
+
+@theme {
+	--font-sans: "Geist", "Inter", ui-sans-serif, system-ui, sans-serif;
+	--font-mono: "Geist Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+	--color-ink: #0a0a0a;
+	--color-paper: #fafafa;
+	--color-line: #e5e5e5;
+	--color-muted: #737373;
+	--color-soft: #f5f5f5;
+	--color-signal: #2563eb;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html {
+	color-scheme: light;
+	background: #fafafa;
+	font-family: var(--font-sans);
+}
+
+body {
+	margin: 0;
+	min-height: 100vh;
+	background:
+		linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(245, 245, 245, 0.96)),
+		repeating-linear-gradient(90deg, rgba(10, 10, 10, 0.03) 0 1px, transparent 1px 72px);
+	color: #0a0a0a;
+}
+
+button,
+textarea,
+input {
+	font: inherit;
+}
+
+button {
+	-webkit-tap-highlight-color: transparent;
+}
+
+.icon-button {
+	display: inline-flex;
+	height: 2.25rem;
+	width: 2.25rem;
+	align-items: center;
+	justify-content: center;
+	border: 1px solid #d4d4d4;
+	border-radius: 0.5rem;
+	background: #fff;
+	color: #171717;
+	transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.icon-button:hover {
+	border-color: #a3a3a3;
+	background: #f5f5f5;
+}
+
+.icon-button:active {
+	transform: translateY(1px);
+}
+
+.icon-button.is-active {
+	border-color: #171717;
+	background: #171717;
+	color: #fff;
+}
+
+.paperbright-logo {
+	box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 1px 2px rgba(10, 10, 10, 0.18);
+}
+
+.google-mark {
+	display: inline-flex;
+	width: 1.25rem;
+	height: 1.25rem;
+	align-items: center;
+	justify-content: center;
+	border-radius: 999px;
+	background: #fff;
+	color: #171717;
+	font-weight: 700;
+	box-shadow: inset 0 0 0 1px #d4d4d4;
+}
+
+.editor-surface {
+	min-height: clamp(28rem, 64vh, 48rem);
+	outline: none;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+.editor-surface:empty::before {
+	content: attr(data-placeholder);
+	color: #a3a3a3;
+}
+
+.editor-surface ul,
+.editor-surface ol {
+	margin: 0.75rem 0;
+	padding-left: 1.65rem;
+	white-space: normal;
+}
+
+.editor-surface ul {
+	list-style: disc;
+}
+
+.editor-surface ol {
+	list-style: decimal;
+}
+
+.editor-surface li {
+	margin: 0.2rem 0;
+	padding-left: 0.2rem;
+}
+
+.editor-surface li::marker {
+	color: #171717;
+	font-weight: 600;
+}
+
+.dark-mode {
+	color-scheme: dark;
+	background: #0a0a0a;
+	color: #fafafa;
+}
+
+.dark-mode body {
+	background:
+		linear-gradient(180deg, rgba(10, 10, 10, 0.95), rgba(23, 23, 23, 0.98)),
+		repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 72px);
+	color: #fafafa;
+}
+
+.dark-mode .theme-panel {
+	border-color: #262626;
+	background: rgba(23, 23, 23, 0.92);
+	color: #fafafa;
+}
+
+.dark-mode .theme-muted {
+	color: #a3a3a3;
+}
+
+.dark-mode .theme-soft {
+	border-color: #262626;
+	background: #171717;
+}
+
+.dark-mode .icon-button {
+	border-color: #404040;
+	background: #171717;
+	color: #fafafa;
+}
+
+.dark-mode .icon-button:hover {
+	border-color: #737373;
+	background: #262626;
+}
+
+.dark-mode .icon-button.is-active {
+	border-color: #fafafa;
+	background: #fafafa;
+	color: #0a0a0a;
+}
+
+.dark-mode .editor-surface li::marker {
+	color: #fafafa;
+}
+
+@media (max-width: 900px) {
+	.editor-shell {
+		grid-template-columns: 1fr;
+	}
+}
