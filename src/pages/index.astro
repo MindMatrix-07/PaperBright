@@ -121,7 +121,6 @@ Try the toolbar, save locally, import a text file, or export your current draft.
 
 					<footer class="flex flex-wrap items-center justify-between gap-2 border-t border-line px-4 py-3 text-sm">
 						<span id="saveState" class="theme-muted text-muted">Unsaved changes</span>
-						<span id="storageState" class="theme-muted text-muted">Live save ready</span>
 					</footer>
 				</div>
 
@@ -201,7 +200,6 @@ Try the toolbar, save locally, import a text file, or export your current draft.
 			const scratchpad = document.querySelector('#scratchpad');
 			const fileInput = document.querySelector('#fileInput');
 			const saveState = document.querySelector('#saveState');
-			const storageState = document.querySelector('#storageState');
 			const lastSaved = document.querySelector('#lastSaved');
 			const wordCount = document.querySelector('#wordCount');
 			const charCount = document.querySelector('#charCount');
@@ -510,7 +508,6 @@ Try the toolbar, save locally, import a text file, or export your current draft.
 			const scheduleLiveSave = () => {
 				window.clearTimeout(liveSaveTimer);
 				saveState.textContent = 'Saving locally...';
-				storageState.textContent = driveAccessToken && driveLiveSave.checked ? 'Live save + Drive' : 'Live save local';
 				liveSaveTimer = window.setTimeout(() => {
 					saveDocument({ mode: 'live' });
 				}, 650);
@@ -525,16 +522,15 @@ Try the toolbar, save locally, import a text file, or export your current draft.
 				const savedAt = new Date();
 				localStorage.setItem(storageKey, JSON.stringify(documentSnapshot(savedAt)));
 				saveState.textContent = mode === 'live' ? 'Live saved locally' : 'Saved locally';
-				storageState.textContent = 'Stored in this browser';
 				lastSaved.textContent = formatDate(savedAt);
 
 				if (syncDrive && driveAccessToken && driveLiveSave.checked) {
 					try {
 						await saveToDrive();
 						localStorage.setItem(storageKey, JSON.stringify(documentSnapshot(new Date())));
-						storageState.textContent = 'Stored in Drive';
+						saveState.textContent = mode === 'live' ? 'Live saved to Drive' : 'Saved to Drive';
 					} catch {
-						storageState.textContent = 'Drive save failed';
+						saveState.textContent = 'Drive save failed';
 					}
 				}
 			};
@@ -581,7 +577,6 @@ Try the toolbar, save locally, import a text file, or export your current draft.
 					if (data.dark) document.documentElement.classList.add('dark-mode');
 					lastSaved.textContent = data.savedAt ? formatDate(new Date(data.savedAt)) : 'Never';
 					saveState.textContent = 'Loaded saved draft';
-					storageState.textContent = 'Live save ready';
 				} catch {
 					saveState.textContent = 'Could not load saved draft';
 				}
