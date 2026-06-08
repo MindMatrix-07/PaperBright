@@ -157,6 +157,28 @@ Try the toolbar, save locally, import a text file, or export your current draft.
 					</section>
 
 					<section>
+						<h2 class="text-sm font-semibold">Plugins</h2>
+						<div class="theme-soft mt-3 space-y-3 rounded-lg border border-line bg-soft p-3 text-sm">
+							<label class="theme-muted flex items-center gap-2 text-sm text-muted">
+								<input data-plugin-toggle="musicPlayer" type="checkbox" />
+								Music Player
+							</label>
+							<div id="musicPlugin" class="plugin-card hidden space-y-3" data-plugin-panel="musicPlayer">
+								<div class="flex items-center justify-between gap-3">
+									<p class="font-medium">Music Player</p>
+									<p id="musicTrackName" class="theme-muted max-w-32 truncate text-xs text-muted">No track</p>
+								</div>
+								<audio id="musicAudio" class="w-full" controls preload="metadata"></audio>
+								<div class="flex flex-wrap items-center gap-2">
+									<button id="chooseMusic" class="compact-button" type="button">Choose audio</button>
+									<button id="clearMusic" class="compact-button" type="button">Clear</button>
+									<input id="musicInput" type="file" accept="audio/*" hidden />
+								</div>
+							</div>
+						</div>
+					</section>
+
+					<section>
 						<h2 class="text-sm font-semibold">Session</h2>
 						<div class="theme-soft mt-3 space-y-2 rounded-lg border border-line bg-soft p-3 text-sm">
 							<p class="theme-muted text-muted">Last saved</p>
@@ -211,12 +233,22 @@ Try the toolbar, save locally, import a text file, or export your current draft.
 			const connectDrive = document.querySelector('#connectDrive');
 			const driveStatus = document.querySelector('#driveStatus');
 			const driveLiveSave = document.querySelector('#driveLiveSave');
+			const pluginToggles = document.querySelectorAll('[data-plugin-toggle]');
+			const chooseMusic = document.querySelector('#chooseMusic');
+			const clearMusic = document.querySelector('#clearMusic');
+			const musicInput = document.querySelector('#musicInput');
+			const musicAudio = document.querySelector('#musicAudio');
+			const musicTrackName = document.querySelector('#musicTrackName');
 			let currentFileName = 'Bright draft.txt';
 			let savedRange = null;
 			let customFont = null;
 			let liveSaveTimer = null;
 			let driveAccessToken = null;
 			let driveFileId = null;
+			let musicObjectUrl = null;
+			let enabledPlugins = {
+				musicPlayer: false,
+			};
 
 			const builtInFonts = {
 				system: 'var(--font-sans)',
@@ -225,6 +257,7 @@ Try the toolbar, save locally, import a text file, or export your current draft.
 			};
 			const driveScope = 'https://www.googleapis.com/auth/drive.file';
 			const driveOAuthStateKey = 'paperbright.drive.oauth.state';
+			const emptyMusicLabel = 'No track';
 
 			const formatDate = (value) =>
 				new Intl.DateTimeFormat(undefined, {
@@ -437,6 +470,50 @@ Try the toolbar, save locally, import a text file, or export your current draft.
 				readingTime.textContent = `${Math.max(1, Math.ceil(words.length / 220))}m`;
 			};
 
+			const revokeMusicUrl = () => {
+				if (!musicObjectUrl) return;
+				URL.revokeObjectURL(musicObjectUrl);
+				musicObjectUrl = null;
+			};
+
+			const clearMusicTrack = ({ dirty = true } = {}) => {
+				musicAudio.pause();
+				revokeMusicUrl();
+				musicAudio.removeAttribute('src');
+				musicAudio.load();
+				musicTrackName.textContent = emptyMusicLabel;
+				if (dirty) markDirty();
+			};
+
+			const loadMusicTrack = (file) => {
+				revokeMusicUrl();
+				musicObjectUrl = URL.createObjectURL(file);
+				musicAudio.src = musicObjectUrl;
+				musicTrackName.textContent = file.name;
+				setPluginEnabled('musicPlayer', true, { dirty: false });
+				markDirty();
+			};
+
+			const setPluginEnabled = (pluginId, enabled, { dirty = true } = {}) => {
+				enabledPlugins = {
+					...enabledPlugins,
+					[pluginId]: enabled,
+				};
+
+				document
+					.querySelector(`[data-plugin-panel="${pluginId}"]`)
+					?.classList.toggle('hidden', !enabled);
+
+				const toggle = document.querySelector(`[data-plugin-toggle="${pluginId}"]`);
+				if (toggle) toggle.checked = enabled;
+
+				if (!enabled && pluginId === 'musicPlayer') {
+					clearMusicTrack({ dirty: false });
+				}
+
+				if (dirty) markDirty();
+			};
+
 			const documentSnapshot = (savedAt) => ({
 				fileName: currentFileName,
 				body: editor.innerHTML,
@@ -447,6 +524,7 @@ Try the toolbar, save locally, import a text file, or export your current draft.
 				dark: document.documentElement.classList.contains('dark-mode'),
 				driveFileId,
 				driveLiveSave: driveLiveSave.checked,
+				plugins: enabledPlugins,
 				savedAt: savedAt.toISOString(),
 			});
 
@@ -569,6 +647,13 @@ Try the toolbar, save locally, import a text file, or export your current draft.
 					editor.style.fontSize = `${fontSize.value}px`;
 					driveFileId = data.driveFileId || null;
 					driveLiveSave.checked = data.driveLiveSave !== false;
+					enabledPlugins = {
+						musicPlayer: false,
+						...(data.plugins || {}),
+					};
+					Object.entries(enabledPlugins).forEach(([pluginId, enabled]) => {
+						setPluginEnabled(pluginId, Boolean(enabled), { dirty: false });
+					});
 					if (!googleOAuthClientId && !data.googleClientId) {
 						driveStatus.textContent = 'Setup required';
 					} else if (driveFileId) {
@@ -659,6 +744,20 @@ Try the toolbar, save locally, import a text file, or export your current draft.
 				markDirty();
 			});
 
+			pluginToggles.forEach((toggle) => {
+				toggle.addEventListener('change', () => {
+					setPluginEnabled(toggle.dataset.pluginToggle, toggle.checked);
+				});
+			});
+
+			chooseMusic.addEventListener('click', () => musicInput.click());
+			clearMusic.addEventListener('click', () => clearMusicTrack());
+			musicInput.addEventListener('change', () => {
+				const [file] = musicInput.files ?? [];
+				if (file) loadMusicTrack(file);
+				musicInput.value = '';
+			});
+
 			document.querySelector('#uploadFont').addEventListener('click', () => fontInput.click());
 			fontInput.addEventListener('change', async () => {
 				const [file] = fontInput.files ?? [];
@@ -684,6 +783,7 @@ Try the toolbar, save locally, import a text file, or export your current draft.
 					saveDocument();
 				}
 			});
+			window.addEventListener('beforeunload', revokeMusicUrl);
 
 			const bootPaperBright = async () => {
 				loadDocument();

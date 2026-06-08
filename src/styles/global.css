@@ -99,6 +99,36 @@ button {
 	opacity: 0.72;
 }
 
+.compact-button {
+	border: 1px solid #d4d4d4;
+	border-radius: 0.5rem;
+	background: #fff;
+	color: #171717;
+	padding: 0.4rem 0.65rem;
+	font-size: 0.875rem;
+	font-weight: 500;
+	transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.compact-button:hover {
+	border-color: #a3a3a3;
+	background: #f5f5f5;
+}
+
+.compact-button:active {
+	transform: translateY(1px);
+}
+
+.plugin-card {
+	border-top: 1px solid #e5e5e5;
+	padding-top: 0.75rem;
+}
+
+.plugin-card audio {
+	display: block;
+	height: 2.25rem;
+}
+
 .google-mark {
 	display: inline-flex;
 	width: 1.25rem;
@@ -220,6 +250,21 @@ button {
 	background: #fafafa;
 	color: #171717;
 	box-shadow: inset 0 0 0 1px #737373;
+}
+
+.dark-mode .compact-button {
+	border-color: #404040;
+	background: #171717;
+	color: #fafafa;
+}
+
+.dark-mode .compact-button:hover {
+	border-color: #737373;
+	background: #262626;
+}
+
+.dark-mode .plugin-card {
+	border-color: #262626;
 }
 
 .dark-mode .editor-surface li::marker {
